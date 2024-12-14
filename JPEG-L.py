@@ -5,14 +5,16 @@ Created on Sun Nov 28 18:27:32 2021
 @author: m.benammar
 for academic purposes only 
 """
+from itertools import product
 
 from matplotlib import pyplot 
 import numpy as np 
 from PIL import Image as im
 import jpeg_functions as fc 
 import huffman_functions as hj 
+
 # Quantization matrix 
-Q =50; # quality  factor of JPEG in %
+Q =70; # quality  factor of JPEG in %
 
 Q_matrix = fc.quantization_matrix(Q) # Quantization matrix 
   
@@ -26,7 +28,10 @@ image_ycbcr_eval= np.array(image_ycbcr)
  
 #  Troncate the image (to make simulations faster)
 image_trunc = image_ycbcr_eval[644:724,624:704] 
-# pyplot.imshow(image_trunc) 
+pyplot.imshow(image_trunc) 
+pyplot.savefig("image_trunc_YCbCr.png")  # Saves the plot as a PNG file
+print("Plot saved as output_plot.png")
+
 
 # Initializations
 n_row = np.size(image_trunc,0) # Number of rows 
@@ -82,26 +87,66 @@ for i_plane in range(0,3):
     
     
     # --------------------------Students work on DC components --------------------------------- 
-    # Compress with Huffman 
-    # Decompress with Huffman 
-    # decompressed_cat_DC should be the output of your Huffman decompressor 
-    decompressed_cat_DC = list_image_cat_DC 
+    # Compress with Huffman
+    DC_alphabet = np.unique(image_DC_DPCM_cat).tolist()  # Get unique symbols in list form
+    frequency_dict_DC, nbr_chr_DC = hj.dict_freq_numbers(list_image_cat_DC, DC_alphabet)  # Generate frequency dictionary
+    DC_tree = hj.build_huffman_tree(frequency_dict_DC)  # Build the Huffman tree
+
+    DC_codebook = hj.generate_code(DC_tree)  # Generate codebook (symbol -> Huffman code)
+    Compressed_DC_Data = hj.compress(list_image_cat_DC, DC_codebook)  # Compress the data
+
+    # Decompress with Huffman
+    DC_decoding_dict = hj.build_decoding_dict(DC_codebook)  # Generate decoding dictionary (Huffman code -> symbol)
+    decompressed_cat_DC = hj.decompress(Compressed_DC_Data, DC_decoding_dict)  # Decompress the data
+
+    # Validate decompression
+    assert decompressed_cat_DC == list_image_cat_DC, "Decompression failed: data mismatch!"
+    print("Compression and decompression successful.")
+
    
     # ---------------------------------------------------------------------------------------------
     
-    # ---- AC components processing    
+    # ---- AC components processing 
+       
     # RLE coding over AC components  
     AC_coeff = image_AC[:,i_plane] 
     [AC_coeff_rl, AC_coeff_amp]= fc.RLE(AC_coeff)
     list_image_rl_AC = np.ndarray.tolist(AC_coeff_rl)
     
     # --------------------------Students work on AC components ---------------------------------
-    # Compress with Huffman 
-    # Decompress with Huffman 
-    # Rdecompressed_cat_AC should be the output of your Huffman decompressor 
-    decompressed_cat_AC = list_image_rl_AC  
-    
-   
+    # Compress with Huffman
+    # Generate the AC alphabet as tuples
+    AC_alphabet = list(product(range(16), repeat=2))
+
+    # Convert list_image_rl_AC to tuples
+    list_image_rl_AC = [tuple(pair) for pair in list_image_rl_AC]
+
+    # Validate that list_image_rl_AC is not empty and contains valid pairs
+    if not list_image_rl_AC:
+        raise ValueError("list_image_rl_AC is empty. Cannot compute frequencies.")
+
+    valid_pairs = [pair for pair in list_image_rl_AC if pair in AC_alphabet]
+    if not valid_pairs:
+        raise ValueError("No valid pairs in list_image_rl_AC match AC_alphabet.")
+
+    # Generate frequency dictionary
+    frequency_dict_AC, nbr_chr_AC = hj.dict_freq_numbers_2(list_image_rl_AC, AC_alphabet)
+    AC_tree = hj.build_huffman_tree(frequency_dict_AC)  # Build the Huffman tree
+
+    AC_codebook = hj.generate_code_2(AC_tree)  # Generate codebook (symbol -> Huffman code)
+    Compressed_AC_Data = hj.compress_2(list_image_rl_AC, AC_codebook)  # Compress the data
+
+    # Decompress with Huffman
+    AC_decoding_dict = hj.build_decoding_dict(AC_codebook)  # Generate decoding dictionary (Huffman code -> symbol)
+    decompressed_cat_AC = hj.decompress(Compressed_AC_Data, AC_decoding_dict)  # Decompress the data
+
+    # Validate decompression
+    assert decompressed_cat_AC == list_image_rl_AC, "Decompression failed: data mismatch!"
+    print("Compression and decompression for AC data successful.")
+
+    # Assign decompressed data to a variable
+    decompressed_cat_AC = list_image_rl_AC
+
     # --------------------------------Students work on the nb_bit/ pixel ---------------------
  
      
@@ -153,6 +198,8 @@ image_rec =  image_ycbcr_rec.convert('RGB')
 
 # Plot the image 
 pyplot.imshow(image_rec) 
+pyplot.savefig("image_rec.png")  # Saves the plot as a PNG file
+print("Plot saved as image_rec.png")
 
  
  
