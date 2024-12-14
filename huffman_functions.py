@@ -20,18 +20,28 @@ def dict_freq_numbers(list_image_cat,Alphabet):
     return  [dicoAlphabet,nbr_chr]
 
 
-def dict_freq_numbers_2(list_image_rl_AC,alphabet_cat_AC):
-    # Image_cat and Alphabet have to be lists 
-    nbr_chr = 0 
-    dicoAlphabet= {}
-    for letter_i in alphabet_cat_AC:
-       for letter_j in alphabet_cat_AC:
-           nbr_chr += list_image_rl_AC.count([letter_i,letter_j])  
-    for letter_i in alphabet_cat_AC:    
-        for letter_j in alphabet_cat_AC:
-            dicoAlphabet[tuple([letter_i,letter_j])] = float(  list_image_rl_AC.count([letter_i,letter_j])   )/nbr_chr
+def dict_freq_numbers_2(list_image_rl_AC, alphabet_cat_AC):
+    # Ensure list_image_rl_AC contains tuples
+    list_image_rl_AC = [tuple(pair) for pair in list_image_rl_AC]
 
-    return  [dicoAlphabet,nbr_chr]
+    nbr_chr = 0
+    dicoAlphabet = {}
+
+    # Calculate total frequency
+    for letter_i, letter_j in alphabet_cat_AC:
+        pair = (letter_i, letter_j)
+        nbr_chr += list_image_rl_AC.count(pair)
+
+    if nbr_chr == 0:  # Handle zero-division edge case
+        raise ValueError("No valid pairs found in list_image_rl_AC that match AC_alphabet.")
+
+    # Compute probabilities
+    for letter_i, letter_j in alphabet_cat_AC:
+        pair = (letter_i, letter_j)
+        dicoAlphabet[pair] = float(list_image_rl_AC.count(pair)) / nbr_chr
+
+    return [dicoAlphabet, nbr_chr]
+
 
 
 # Build the Huffman tree      
